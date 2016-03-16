@@ -1,0 +1,1224 @@
+CREATE OR REPLACE PACKAGE BODY HandlePushData AS
+ 
+ FUNCTION fResetPushReconcRequest(sACCOUNTNAME IN X_IVPN.ACCOUNTNAME%TYPE) RETURN NUMBER
+ IS
+    LP constant varchar2(50) := 'fResetPushReconcRequest(): ';
+  nErrNr      NUMBER:= 0;
+  sErrDesc     VARCHAR2(1000):='';
+ 
+ BEGIN
+ 
+			UPDATE X_IVPN
+  SET
+   X_IVPN.PUSH_ACTION = 0,
+   X_IVPN.PUSH_STARTDATE = NULL
+  WHERE X_IVPN.ACCOUNTNAME = sACCOUNTNAME;
+ 
+  RETURN nErrNr;
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+   RETURN nErrNr;
+ END fResetPushReconcRequest;
+ 
+ FUNCTION fResetExtUpdRequest(sACCOUNTNAME IN X_IVPN.ACCOUNTNAME%TYPE) RETURN NUMBER
+ IS
+    LP constant varchar2(50) := 'fResetExtUpdRequest(): ';
+  nErrNr      NUMBER:= 0;
+  sErrDesc     VARCHAR2(1000):='';
+ 
+ BEGIN
+	 
+	UPDATE X_IVPN
+	  SET
+      		X_IVPN.INCL_EXTACTION = 0              -- reset the extension update request
+	  WHERE X_IVPN.ACCOUNTNAME = sACCOUNTNAME;
+ 
+  RETURN nErrNr;
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+   RETURN nErrNr;
+ END fResetExtUpdRequest;
+ 
+  FUNCTION fResetVpnPushUpdateRequest (nVPN_ID IN X_VPN.VPN_ID%TYPE) RETURN NUMBER
+  IS
+    LP constant varchar2(50) := 'fResetVpnPushUpdateRequest(): ';
+  nErrNr      NUMBER:= 0;
+  sErrDesc     VARCHAR2(1000):='';
+ BEGIN
+ 
+  UPDATE X_VPN
+  SET
+   X_VPN.ACCOUNTNAME_PREV = NULL,
+      X_VPN.UNIQUENESSPREFIX_PREV = NULL,
+      X_VPN.IVPN_STARTDATE = NULL,
+      X_VPN.IVPN_ACTION = NULL,
+      X_VPN.IVPN_ACTISEXED = 0
+  WHERE
+   X_VPN.VPN_ID = nVPN_ID;
+ 
+  RETURN nErrNr;
+ 
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+  RETURN nErrNr;
+ 
+  END fResetVpnPushUpdateRequest;
+ 
+  FUNCTION fResetSubPushUpdateRequest(nSUBSCRIPTION_ID IN X_SUBSCRIPTIONS.SUBSCRIPTION_ID%TYPE) RETURN NUMBER
+  IS
+    LP constant varchar2(50) := 'fResetSubPushUpdateRequest(): ';
+ 
+  nErrNr      NUMBER:= 0;
+  sErrDesc     VARCHAR2(1000):='';
+ 
+ BEGIN
+ 
+    UPDATE X_SUBSCRIPTIONS
+  SET
+   X_SUBSCRIPTIONS.IVPNSUB_ACTION = NULL,
+   X_SUBSCRIPTIONS.IVPNSUB_ACTISEXED = 0
+  WHERE
+      X_SUBSCRIPTIONS.SUBSCRIPTION_ID = nSUBSCRIPTION_ID;
+ 
+  RETURN nErrNr;
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+   RETURN nErrNr;
+ END fResetSubPushUpdateRequest;
+ 
+ FUNCTION fInsPushTransaction
+     (
+      pACCOUNTNAME IN X_PUSHTRANSACTION.ACCOUNTNAME%TYPE,
+     pSUBSCRIPTION_ID IN X_PUSHTRANSACTION.SUBSCRIPTION_ID%TYPE,
+      pMSISDN IN X_PUSHTRANSACTION.MSISDN%TYPE,
+      pEXTENSION IN X_PUSHTRANSACTION.EXTENSION%TYPE,
+     pIS_MOBILE IN X_PUSHTRANSACTION.IS_MOBILE%TYPE,
+      pUNIQUENESSPREFIX IN X_PUSHTRANSACTION.UNIQUENESSPREFIX%TYPE,
+     pPUSH_ACTION IN X_PUSHTRANSACTION.PUSH_ACTION%TYPE,
+     pPUSH_STATE IN X_PUSHTRANSACTION.PUSH_STATE%TYPE
+     ) RETURN NUMBER
+ IS
+    LP constant varchar2(50) := 'fInsPushTransaction(): ';
+ 
+  nErrNr      NUMBER:= 0;
+  sErrDesc     VARCHAR2(1000):='';
+ 
+   BEGIN
+   -- Create new push transaction record
+   INSERT INTO X_PUSHTRANSACTION (
+          PUSHTRANSACTION_ID,
+          ACCOUNTNAME,
+          SUBSCRIPTION_ID,
+          MSISDN,
+      EXTENSION,
+          IS_MOBILE,
+          UNIQUENESSPREFIX,
+          PUSH_ACTION,
+          PUSH_STATE
+   ) VALUES (
+          NULL,
+          pACCOUNTNAME,
+          pSUBSCRIPTION_ID,
+          pMSISDN,
+      pEXTENSION,
+          pIS_MOBILE,
+          pUNIQUENESSPREFIX,
+          pPUSH_ACTION,
+          pPUSH_STATE
+   );
+ 
+   RETURN nErrNr;
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+   RETURN nErrNr;
+ END fInsPushTransaction;
+ 
+FUNCTION fHandlePushSubscribersUpd RETURN NUMBER
+ IS
+  CURSOR cI_VPN IS
+   SELECT
+    I_VPN.*
+   FROM
+    VIEW_VPN_PUSH I_VPN
+   ORDER BY
+    I_VPN.ACCOUNTNAME,
+    I_VPN.VPN_ID;
+  sI_VPN  cI_VPN%ROWTYPE;
+                                                                                -- OPPASSEN DDI GAAT OOK MEE
+  CURSOR cISubscriber (nVPN_ID IN X_VPN.VPN_ID%TYPE) IS
+   SELECT
+    ISUB.SUBSCRIPTION_ID,
+    ISUB.MSISDN,
+    ISUB.EXTENSION,
+    ISUB.IVPNSUB_ACTION,
+    ISUB.IVPNSUB_ACTISEXED,
+    ISUB.STATE,
+        ISUB.IS_MOBILE
+   FROM
+    VIEW_VPNSUBSCRIPTION_PUSH ISUB
+   WHERE
+    (ISUB.VPN_ID = nVPN_ID)
+      ORDER BY
+        ISUB.IS_MOBILE, ISUB.MSISDN;
+  sISubscriber  cISubscriber%ROWTYPE;
+ 
+  CURSOR cISubscriberMob (nVPN_ID IN X_VPN.VPN_ID%TYPE, nIS_MOBILE IN NUMBER) IS
+   SELECT
+    ISUB.SUBSCRIPTION_ID,
+    ISUB.MSISDN,
+    ISUB.EXTENSION,
+    ISUB.IVPNSUB_ACTION,
+    ISUB.IVPNSUB_ACTISEXED,
+    ISUB.STATE,
+        ISUB.IS_MOBILE
+   FROM
+    VIEW_VPNSUBSCRIPTION_PUSH ISUB
+   WHERE
+    (ISUB.VPN_ID = nVPN_ID) AND
+    (ISUB.IS_MOBILE <> nIS_MOBILE)
+      ORDER BY
+        ISUB.IS_MOBILE, ISUB.MSISDN;
+ 
+    Type TransParamType is record
+      (
+      aUserName X_USERS.USERNAME%TYPE,
+      nActionType X_ACTION_TYPES.ACTION_TYPE_ID%TYPE,
+      aParamTbl tblTransParamTyp
+      );
+ 
+    Type IMPTransParamType is record
+      (
+      aACCOUNTNAME X_PUSHTRANSACTION.ACCOUNTNAME%TYPE,
+      aUNIQUENESSPREFIX X_PUSHTRANSACTION.UNIQUENESSPREFIX%TYPE,
+     aPUSH_ACTION X_PUSHTRANSACTION.PUSH_ACTION%TYPE
+      );
+ 
+    TYPE tblTransParamType IS TABLE OF TransParamType INDEX BY BINARY_INTEGER;
+ 
+    TYPE tblIMPTransParamType IS TABLE OF IMPTransParamType INDEX BY BINARY_INTEGER;
+ 
+    nDependsOnTransactionId X_TRANSACTIONS.TRANSACTION_ID%TYPE;
+   v_index                BINARY_INTEGER;
+    tblTransParams          tblTransParamType;
+    tblIMPTransParams       tblIMPTransParamType;
+    bProcessSubscriber      BOOLEAN;
+ 
+    LP constant varchar2(50) := 'fHandlePushSubscribersUpd(): ';
+ 
+  nErrNr                NUMBER:= 0;
+  sErrDesc               VARCHAR2(1000):='';
+ 
+    FUNCTION bIncludeExtension RETURN BOOLEAN
+    IS
+      bIncludeExtensionTmp BOOLEAN;
+    BEGIN
+    CASE sISubscriber.IS_MOBILE
+      WHEN 1 THEN bIncludeExtensionTmp := (sI_VPN.INCL_EXTMSISDN = 1);
+      WHEN 0 THEN bIncludeExtensionTmp := (sI_VPN.INCL_EXTDDI = 1);
+      END CASE;
+      RETURN bIncludeExtensionTmp AND (sISubscriber.EXTENSION IS NOT NULL);
+    END;
+ 
+    PROCEDURE HandlePushTransactionUpd (aAction VARCHAR2)
+    IS
+      nCount INTEGER;
+      IMP_INSERT boolean;
+    BEGIN
+ 
+      CASE aAction
+      WHEN 'I' THEN
+     tblIMPTransParams(1).aACCOUNTNAME := sI_VPN.ACCOUNTNAME;
+     tblIMPTransParams(1).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                               WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX
+                                               WHEN FALSE THEN NULL
+                                               END;
+     tblIMPTransParams(1).aPUSH_ACTION := sI_VPN.IVPN_ACTION;
+      WHEN 'D' THEN
+     tblIMPTransParams(1).aACCOUNTNAME := sI_VPN.ACCOUNTNAME_PREV;
+     tblIMPTransParams(1).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                               WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX_PREV
+                                               WHEN FALSE THEN NULL
+                                               END;
+     tblIMPTransParams(1).aPUSH_ACTION := sI_VPN.IVPN_ACTION;
+      WHEN 'U' THEN
+          nCount := 0;
+     IF (sI_VPN.ACCOUNTORIGIN_PREV = 1) THEN
+            nCount := nCount+1;
+            tblIMPTransParams(nCount).aACCOUNTNAME := sI_VPN.ACCOUNTNAME_PREV;
+            tblIMPTransParams(nCount).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                                        WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX_PREV
+                                                        WHEN FALSE THEN NULL
+                                                        END;
+            tblIMPTransParams(nCount).aPUSH_ACTION := 'D';
+          END IF;
+ 
+     IF (sI_VPN.ACCOUNTORIGIN = 1) THEN
+            nCount := nCount+1;
+            tblIMPTransParams(nCount).aACCOUNTNAME := sI_VPN.ACCOUNTNAME;
+            tblIMPTransParams(nCount).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                                        WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX
+                                                        WHEN FALSE THEN NULL
+                                                        END;
+            tblIMPTransParams(nCount).aPUSH_ACTION := 'I';
+          END IF;
+      WHEN 'S' THEN
+          -- Reconciliation (synchronization)
+          tblIMPTransParams(1).aACCOUNTNAME := sI_VPN.ACCOUNTNAME;
+          tblIMPTransParams(1).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                                 WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX
+                                                 WHEN FALSE THEN NULL
+                                                 END;
+          tblIMPTransParams(1).aPUSH_ACTION := 'S';
+      ELSE
+          -- A,R,M uniqueness prefix
+          IMP_INSERT := TRUE;
+ 
+          tblIMPTransParams(1).aACCOUNTNAME := sI_VPN.ACCOUNTNAME;
+          tblIMPTransParams(1).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                                 WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX_PREV
+                                                 WHEN FALSE THEN NULL
+                                                 END;
+          tblIMPTransParams(1).aPUSH_ACTION := 'D';
+ 
+          if (sISubscriber.IVPNSUB_ACTISEXED = 1) then
+            IMP_INSERT := sISubscriber.IVPNSUB_ACTION <> 'D';
+          end if;
+ 
+       IF IMP_INSERT THEN
+            tblIMPTransParams(2).aACCOUNTNAME := sI_VPN.ACCOUNTNAME;
+            tblIMPTransParams(2).aUNIQUENESSPREFIX := CASE bIncludeExtension
+                                                   WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX
+                                                   WHEN FALSE THEN NULL
+                                                   END;
+            tblIMPTransParams(2).aPUSH_ACTION := 'I';
+          END IF;
+      END CASE;
+    END HandlePushTransactionUpd;
+ 
+    PROCEDURE HandlePushTransactions(aAction VARCHAR2)
+    IS
+      nPUSH_STATE CONSTANT X_PUSHTRANSACTION.PUSH_STATE%TYPE := 1;
+    BEGIN
+      -- Clear PUSH transation parameters
+      v_index := tblIMPTransParams.first;
+      WHILE v_index IS NOT NULL LOOP
+        tblIMPTransParams.DELETE(v_index);
+        v_index := tblIMPTransParams.next(v_index);
+      END LOOP;
+ 
+      -- Fill PUSH transaction parameters
+      HandlePushTransactionUpd (aAction);
+ 
+      -- Add PUSH transaction record
+      v_index := tblIMPTransParams.first;
+      WHILE v_index IS NOT NULL LOOP
+    nErrNr :=  HandlePushData.fInsPushTransaction
+                          (
+                           tblIMPTransParams(v_index).aACCOUNTNAME,
+                           sISubscriber.SUBSCRIPTION_ID,
+                           sISubscriber.MSISDN,
+                            CASE bIncludeExtension
+                                                   WHEN TRUE THEN sISubscriber.EXTENSION
+                                                   WHEN FALSE THEN NULL
+                                                   END,
+                           sISubscriber.IS_MOBILE,
+                           tblIMPTransParams(v_index).aUNIQUENESSPREFIX,
+                           tblIMPTransParams(v_index).aPUSH_ACTION,
+                           nPUSH_STATE
+                          );
+        v_index := tblIMPTransParams.next(v_index);
+      END LOOP;
+ 
+    END HandlePushTransactions;
+ 
+    PROCEDURE HandleINTransactions4Ivpn(nActionType Integer)
+    IS
+    BEGIN
+      v_index := tblTransParams.count + 1;
+      tblTransParams(v_index).aUserName :='IVPNUser';
+      tblTransParams(v_index).nActionType := nActionType;
+ 
+      CASE nActionType
+      WHEN HandleINRequest.C_CREATE_IVPN THEN
+    tblTransParams(v_index).aParamTbl :=
+     CASE sI_VPN.ACCOUNTORIGIN
+      WHEN 0 THEN tblTransParamTyp('IGNP='||'FALSE')
+      WHEN 1 THEN tblTransParamTyp('IGNP='||'TRUE')
+     END;
+      WHEN HandleINRequest.C_DELETE_IVPN THEN
+          tblTransParams(v_index).aParamTbl := NULL;
+      --  tblTransParams(v_index).aParamTbl := tblTransParamTyp('');
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUB_ISC THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriber.MSISDN);
+      WHEN HandleINRequest.C_IVPN_REMOVE_SUB_ISC THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriber.MSISDN);
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUB_HLR THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriber.MSISDN, 'SERVICE_KEY='||'1');
+      WHEN HandleINRequest.C_IVPN_REMOVE_SUB_HLR THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriber.MSISDN);
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUB THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('GID='||sI_VPN.ACCOUNTNAME,'MSISDN='||sISubscriber.MSISDN);
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUBSC THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('GID='||sI_VPN.ACCOUNTNAME,
+                                                                'MSISDN='||sISubscriber.MSISDN,
+                                                                'SHORTCODE='||sI_VPN.UNIQUENESSPREFIX||sISubscriber.EXTENSION);
+      WHEN HandleINRequest.C_IVPN_REMOVE_SUB THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriber.MSISDN);
+      ELSE
+          -- dbms_output.put_line('N/A');
+          NULL;
+      END CASE;
+    END;
+ 
+    PROCEDURE FillINTransactions4Ivpn (aAction VARCHAR2)
+    IS
+    BEGIN
+ 
+    CASE aAction
+      WHEN 'I' THEN
+                                                                            --Insert PMS transaction info
+     IF bIncludeExtension THEN
+         HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUBSC);
+       ELSE
+         HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB);
+       END IF;
+ 
+        IF sISubscriber.IS_MOBILE = 1 THEN
+                                                                            --Insert ISAAC transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB_ISC);
+                                                                            --Insert HLR transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB_HLR);
+ 
+          END IF;
+      WHEN 'D' THEN
+                                                                            --Insert PMS transaction info
+       HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB);
+ 
+      IF sISubscriber.IS_MOBILE = 1 THEN
+                                                                            --Insert ISAAC transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB_ISC);
+                                                                            --Insert HLR transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB_HLR);
+          END IF;
+     WHEN 'U' THEN
+                                                                            --Insert PMS transaction info
+            -- The remove action is not necesarry an update uses the msisdn as the primary key.
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB);
+ 
+      IF bIncludeExtension THEN
+           HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUBSC);
+          ELSE
+           HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB);
+           END IF;
+        ELSE
+          -- dbms_output.put_line('N/A');
+          NULL;
+      END CASE;
+ 
+    END FillINTransactions4Ivpn;
+ 
+    PROCEDURE ClearINTransactions
+    IS
+    BEGIN
+      v_index := tblTransParams.first;
+      WHILE v_index IS NOT NULL LOOP
+        tblTransParams.DELETE(v_index);
+        v_index := tblTransParams.next(v_index);
+      END LOOP;
+    END ClearINTransactions;
+ 
+    PROCEDURE AddINTransactions
+    IS
+    BEGIN
+      v_index := tblTransParams.first;
+   utl.log('HANDLEPUSHDATA.fHandlePushSubscribersUpd.AddinTransactions was called',5);
+      WHILE v_index IS NOT NULL LOOP
+    nErrNr:=HandleINRequest.HandleTransaction
+      (
+            'push',
+      tblTransParams(v_index).aUserName,
+      sI_VPN.VPN_ID,
+      tblTransParams(v_index).nActionType,
+      nDependsOnTransactionId,
+      tblTransParams(v_index).aParamTbl
+      );
+        v_index := tblTransParams.next(v_index);
+      END LOOP;
+ 
+   END AddINTransactions;
+ 
+ PROCEDURE SubscribersViaVPNUpdate
+ IS
+ BEGIN
+    OPEN cISubscriber(sI_VPN.VPN_ID);                                         -- Process all (I) subscribers within VPN
+    LOOP
+     FETCH cISubscriber INTO sISubscriber;
+     EXIT WHEN cISubscriber%NOTFOUND;
+ 
+        bProcessSubscriber := TRUE;
+        CASE sI_VPN.IVPN_ACTION
+        WHEN 'I' THEN
+          IF (sISubscriber.IVPNSUB_ACTISEXED = 1) then
+            bProcessSubscriber := sISubscriber.IVPNSUB_ACTION <> 'D';
+          END IF;
+        WHEN 'D' THEN
+          IF (sISubscriber.IVPNSUB_ACTISEXED = 1) THEN
+            bProcessSubscriber := sISubscriber.IVPNSUB_ACTION <> 'I';
+          END IF;
+        END CASE;
+ 
+        IF bProcessSubscriber THEN
+          FillINTransactions4Ivpn (sI_VPN.IVPN_ACTION);
+ 
+          IF (sI_VPN.ACCOUNTORIGIN = 1) OR (sI_VPN.ACCOUNTORIGIN_PREV = 1) THEN
+              HandlePushTransactions( sI_VPN.IVPN_ACTION);
+          END IF;
+ 
+        END IF;
+ 
+        IF (sISubscriber.IVPNSUB_ACTISEXED = 1) THEN
+       nErrNr :=  HandlePushData.fResetSubPushUpdateRequest(sISubscriber.SUBSCRIPTION_ID);  -- reset subscriber
+        END IF;
+ 
+    END LOOP;
+ 
+     CLOSE cISubscriber;
+ 
+ END SubscribersViaVPNUpdate;
+ 
+ PROCEDURE SubscribersViaGAReconc
+ IS
+ BEGIN
+    OPEN cISubscriber(sI_VPN.VPN_ID);
+    LOOP
+     FETCH cISubscriber INTO sISubscriber;
+     EXIT WHEN cISubscriber%NOTFOUND;
+ 
+        IF (sISubscriber.IVPNSUB_ACTISEXED = 1) AND sISubscriber.IVPNSUB_ACTION IN ( 'I', 'D', 'U') THEN
+          FillINTransactions4Ivpn (sISubscriber.IVPNSUB_ACTION);
+        END IF;
+        IF NOT ((sISubscriber.IVPNSUB_ACTISEXED = 1) AND (sISubscriber.IVPNSUB_ACTION = 'D')) THEN
+          HandlePushTransactions('S');
+        END IF;
+ 
+        IF (sISubscriber.IVPNSUB_ACTISEXED = 1) THEN
+       nErrNr :=  HandlePushData.fResetSubPushUpdateRequest(sISubscriber.SUBSCRIPTION_ID);  -- reset subscriber
+        END IF;
+ 
+    END LOOP;
+ 
+     CLOSE cISubscriber;
+ 
+ END SubscribersViaGAReconc;
+ 
+ PROCEDURE SubscribersViaExtension
+ IS
+     nPUSH_STATE CONSTANT X_PUSHTRANSACTION.PUSH_STATE%TYPE := 1;
+ BEGIN
+ 
+    OPEN cISubscriberMob(sI_VPN.VPN_ID, CASE sI_VPN.INCL_EXTACTION
+                      WHEN 1 THEN 0                -- Include MsIsdn Is_Mobile = 1
+                      WHEN 2 THEN 1                -- Include Ddi    Is_Mobile = 0
+                      WHEN 3 THEN 2                -- Include MsIsdn and Ddi
+                     END);
+    LOOP
+     FETCH cISubscriberMob INTO sISubscriber;
+     EXIT WHEN cISubscriber%NOTFOUND;
+ 
+        IF NOT ((sISubscriber.IVPNSUB_ACTISEXED = 1) AND sISubscriber.IVPNSUB_ACTION IN ( 'I', 'D', 'U')) THEN
+                                                                            --Insert PMS transaction info
+      HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB);
+ 
+      IF bIncludeExtension THEN
+           HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUBSC);
+       ELSE
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB);
+       END IF;
+ 
+          IF (sI_VPN.PUSH_ACTION <> 1) THEN                                      -- No GA reconciliation request
+         IF (sI_VPN.ACCOUNTORIGIN = 1) THEN
+       nErrNr :=  HandlePushData.fInsPushTransaction
+        (
+          sI_VPN.ACCOUNTNAME,
+         sISubscriber.SUBSCRIPTION_ID,
+          sISubscriber.MSISDN,
+           CASE bIncludeExtension
+              WHEN TRUE THEN sISubscriber.EXTENSION
+              WHEN FALSE THEN NULL
+              END,
+         sISubscriber.IS_MOBILE,
+          CASE bIncludeExtension
+              WHEN TRUE THEN sI_VPN.UNIQUENESSPREFIX
+              WHEN FALSE THEN NULL
+              END,
+         'I',
+         nPUSH_STATE
+        );
+         END IF;
+        END IF;
+       END IF;
+ 
+    END LOOP;
+ 
+     CLOSE cISubscriberMob;
+ END SubscribersViaExtension;
+ 
+BEGIN
+ 
+  utl.log('HANDLEPUSHDATA.fHandlePushSubscribersUpd called',5);
+ 
+  OPEN cI_VPN;
+  LOOP
+   FETCH cI_VPN INTO sI_VPN;                                                 -- Process all changed (I)VPN accounts
+   EXIT WHEN cI_VPN%NOTFOUND;
+ 
+   nDependsOnTransactionId:=-1;
+      ClearINTransactions;
+                                                                                --Insert SEP transaction info
+      IF (sI_VPN.IVPN_ACTISEXED = 1) THEN
+        CASE sI_VPN.IVPN_ACTION
+          WHEN 'I' THEN HandleINTransactions4Ivpn(HandleINRequest.C_CREATE_IVPN);
+          WHEN 'D' THEN HandleINTransactions4Ivpn(HandleINRequest.C_DELETE_IVPN);
+          WHEN 'U' THEN
+            -- Swappen van global account ; ACCOUNTORIGIN gaat van (1)=>(0) or (0)=>(1)
+            HandleINTransactions4Ivpn(HandleINRequest.C_DELETE_IVPN);
+            HandleINTransactions4Ivpn(HandleINRequest.C_CREATE_IVPN);
+          ELSE
+            -- dbms_output.put_line('N/A');
+            NULL;
+        END CASE;
+      END IF;
+                                       -- VPN update request
+      IF (sI_VPN.IVPN_ACTISEXED = 1) AND sI_VPN.IVPN_ACTION IN ('I', 'D', 'U', 'A', 'R', 'M') THEN
+     SubscribersViaVPNUpdate;                                             -- Process all (I) subscribers within VPN
+      ELSE
+        IF (sI_VPN.INCL_EXTACTION <> 0) THEN                 -- Extension has been updated
+          SubscribersViaExtension;                                            -- Process all (I) subscribers within VPN
+          AddINTransactions;
+          ClearINTransactions;
+        END IF;
+ 
+        IF (sI_VPN.PUSH_ACTION = 1) THEN                                      -- GA reconciliation request
+          SubscribersViaGAReconc;                                             -- Process all (I) subscribers within VPN
+        END IF;
+      END IF;
+ 
+      AddINTransactions;
+ 
+     IF (sI_VPN.IVPN_ACTISEXED = 1) THEN
+      nErrNr  := HandlePushData.fResetVpnPushUpdateRequest(sI_VPN.VPN_ID);
+      END IF;
+      IF (sI_VPN.PUSH_ACTION = 1) THEN
+        nErrNr := HandlePushData.fResetPushReconcRequest(sI_VPN.ACCOUNTNAME);
+    END IF;
+      IF (sI_VPN.INCL_EXTACTION <> 0) THEN
+          nErrNr := HandlePushData.fResetExtUpdRequest(sI_VPN.ACCOUNTNAME);
+      END IF;
+ 
+      COMMIT;
+ 
+  END LOOP;
+ 
+   CLOSE cI_VPN;
+ 
+    -- remove deleted subcribers from the database
+    DELETE X_SUBSCRIPTIONS WHERE (X_SUBSCRIPTIONS.STATE =1) AND (X_SUBSCRIPTIONS.IVPNSUB_ACTISEXED = 0);
+    COMMIT;
+ 
+  RETURN nErrNr;
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+   RETURN nErrNr;
+END fHandlePushSubscribersUpd;
+ 
+FUNCTION fHandlePushSubscriberUpd RETURN NUMBER
+ IS
+  CURSOR cISubscriberUpd IS
+   SELECT
+    VIEW_SUBSCRIPTION_PUSH.*
+   FROM
+    VIEW_SUBSCRIPTION_PUSH
+   ORDER BY
+    ACCOUNTNAME,
+    VPN_ID;
+  sISubscriberUpd  cISubscriberUpd%ROWTYPE;
+ 
+    Type TransParamType is record
+      (
+      aUserName X_USERS.USERNAME%TYPE,
+      nActionType X_ACTION_TYPES.ACTION_TYPE_ID%TYPE,
+      aParamTbl tblTransParamTyp
+      );
+ 
+    TYPE tblTransParamType IS TABLE OF TransParamType INDEX BY BINARY_INTEGER;
+ 
+    nDependsOnTransactionId X_TRANSACTIONS.TRANSACTION_ID%TYPE;
+  aServiceLevel X_SERVICE_LEVELS.NAME%TYPE;
+ 
+  v_index                BINARY_INTEGER;
+    tblTransParams          tblTransParamType;
+ 
+    LP constant varchar2(50) := 'fHandlePushSubscriberUpd(): ';
+   nErrNr                NUMBER:= 0;
+  sErrDesc               VARCHAR2(1000);
+ 
+
+    FUNCTION bIncludeExtension RETURN BOOLEAN
+    IS
+      bIncludeExtensionTmp BOOLEAN;
+    BEGIN
+      bIncludeExtensionTmp := (sISubscriberUpd.INCL_EXT = 1);
+      RETURN bIncludeExtensionTmp AND (sISubscriberUpd.EXTENSION IS NOT NULL);
+    END;
+ 
+
+    PROCEDURE HandlePushTransactions_upd
+    IS
+      nPUSH_STATE X_PUSHTRANSACTION.PUSH_STATE%TYPE;
+    BEGIN
+      nPUSH_STATE := 1;
+ 
+      IF (sISubscriberUpd.ACCOUNTORIGIN = 1) then
+      nErrNr :=  HandlePushData.fInsPushTransaction
+       (
+         sISubscriberUpd.ACCOUNTNAME,
+        sISubscriberUpd.SUBSCRIPTION_ID,
+         sISubscriberUpd.MSISDN,
+          CASE bIncludeExtension
+              WHEN TRUE THEN sISubscriberUpd.EXTENSION
+              WHEN FALSE THEN NULL
+              END,
+        sISubscriberUpd.IS_MOBILE,
+         CASE bIncludeExtension
+              WHEN TRUE THEN sISubscriberUpd.UNIQUENESSPREFIX
+              WHEN FALSE THEN NULL
+              END,
+        sISubscriberUpd.IVPNSUB_ACTION,
+        nPUSH_STATE
+       );
+      END IF;
+ 
+    END HandlePushTransactions_upd;
+ 
+    PROCEDURE HandleINTransactions4Ivpn(nActionType Integer)
+    IS
+    BEGIN
+      v_index := tblTransParams.count + 1;
+      tblTransParams(v_index).aUserName :='IVPNUser';
+      tblTransParams(v_index).nActionType := nActionType;
+ 
+      CASE nActionType
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUB_ISC THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriberUpd.MSISDN);
+      WHEN HandleINRequest.C_IVPN_REMOVE_SUB_ISC THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriberUpd.MSISDN);
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUB_HLR THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriberUpd.MSISDN, 'SERVICE_KEY='||'1');
+      WHEN HandleINRequest.C_IVPN_REMOVE_SUB_HLR THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriberUpd.MSISDN);
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUB THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('GID='||sISubscriberUpd.ACCOUNTNAME,'MSISDN='||sISubscriberUpd.MSISDN);
+      WHEN HandleINRequest.C_IVPN_UPDATE_SUBSC THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('GID='||sISubscriberUpd.ACCOUNTNAME,
+                                                                'MSISDN='||sISubscriberUpd.MSISDN,
+                                                                'SHORTCODE='||sISubscriberUpd.UNIQUENESSPREFIX||sISubscriberUpd.EXTENSION);
+      WHEN HandleINRequest.C_IVPN_REMOVE_SUB THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriberUpd.MSISDN);
+ 
+      WHEN HandleINRequest.C_CHANGE_SERVICELEVEL THEN
+          tblTransParams(v_index).aParamTbl := tblTransParamTyp('MSISDN='||sISubscriberUpd.MSISDN,
+                                                                'SERVICE_LEVEL='||aServiceLevel);
+      ELSE
+          -- dbms_output.put_line('N/A');
+          NULL;
+      END CASE;
+    END;
+ 
+    PROCEDURE FillINTransactions4Ivpn (aAction VARCHAR2)
+    IS
+    BEGIN
+ 
+    CASE aAction
+      WHEN 'I' THEN
+                                                                            --Insert PMS transaction info
+     IF bIncludeExtension THEN
+         HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUBSC);
+       ELSE
+         HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB);
+       END IF;
+ 
+        IF sISubscriberUpd.IS_MOBILE = 1 THEN
+                                                                            --Insert ISAAC transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB_ISC);
+                                                                            --Insert HLR transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB_HLR);
+ 
+          END IF;
+      WHEN 'D' THEN
+                                                                            --Insert PMS transaction info
+       HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB);
+ 
+      IF sISubscriberUpd.IS_MOBILE = 1 THEN
+                                                                            --Insert ISAAC transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB_ISC);
+                                                                            --Insert HLR transaction info
+          HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB_HLR);
+          END IF;
+       HandleINTransactions4Ivpn(HandleINRequest.C_CHANGE_SERVICELEVEL);
+ 
+     WHEN 'U' THEN
+                                                                            --Insert PMS transaction info
+            -- The remove action is not necesarry an update uses the msisdn as the primary key.
+          --prev? HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_REMOVE_SUB);
+ 
+      IF bIncludeExtension THEN
+           HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUBSC);
+          ELSE
+           HandleINTransactions4Ivpn(HandleINRequest.C_IVPN_UPDATE_SUB);
+           END IF;
+        ELSE
+          -- dbms_output.put_line('N/A');
+          NULL;
+      END CASE;
+ 
+    END FillINTransactions4Ivpn;
+ 
+    PROCEDURE ClearINTransactions
+    IS
+    BEGIN
+      v_index := tblTransParams.first;
+      WHILE v_index IS NOT NULL LOOP
+        tblTransParams.DELETE(v_index);
+        v_index := tblTransParams.next(v_index);
+      END LOOP;
+    END ClearINTransactions;
+ 
+    PROCEDURE AddINTransactions
+    IS
+    BEGIN
+      v_index := tblTransParams.first;
+      WHILE v_index IS NOT NULL LOOP
+    utl.log('HANDLEPUSHDATA.fHandlePushSubscriberUpd.AddinTransactions was called',5);
+    nErrNr:=HandleINRequest.HandleTransaction
+      (
+            'push',
+      tblTransParams(v_index).aUserName,
+      sISubscriberUpd.VPN_ID,
+      tblTransParams(v_index).nActionType,
+      nDependsOnTransactionId,
+      tblTransParams(v_index).aParamTbl
+      );
+        v_index := tblTransParams.next(v_index);
+      END LOOP;
+ 
+   END AddINTransactions;
+ 
+BEGIN
+    -- Subscribers within a global account update requests
+  utl.log('HANDLEPUSHDATA.fHandlePushSubscriberUpd called',5);
+ 
+  SELECT
+      NAME SERVICE_LEVEL
+  INTO
+    aServiceLevel
+    FROM
+      X_SERVICE_LEVELS
+    WHERE
+      SERVICE_LEVEL_ID = HandleINRequest.C_NPDUMMY;
+ 
+  OPEN cISubscriberUpd;
+ 
+  LOOP
+ 
+   FETCH cISubscriberUpd INTO sISubscriberUpd;                               -- Process all (I) subscribers
+ 
+   EXIT WHEN cISubscriberUpd%NOTFOUND;
+ 
+          nDependsOnTransactionId := -1;
+          ClearINTransactions;
+          FillINTransactions4Ivpn (sISubscriberUpd.IVPNSUB_ACTION);
+          AddINTransactions;
+ 
+          HandlePushTransactions_upd;
+ 
+       nErrNr :=  HandlePushData.fResetSubPushUpdateRequest(sISubscriberUpd.SUBSCRIPTION_ID);
+ 
+          COMMIT;
+ 
+  END LOOP;
+ 
+    CLOSE cISubscriberUpd;
+ 
+    -- remove deleted subcribers from the database
+    DELETE X_SUBSCRIPTIONS WHERE (X_SUBSCRIPTIONS.STATE =1) AND (X_SUBSCRIPTIONS.IVPNSUB_ACTISEXED = 0);
+    COMMIT;
+ 
+   RETURN nErrNr;
+ 
+ EXCEPTION
+  WHEN Others THEN
+     -- ...handle the exception
+     nErrNr := SQLCODE;
+     sErrDesc := SQLERRM;
+ 
+        utl.log(LP || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || nErrNr || ' ' || sErrDesc);
+ 
+  RETURN nErrNr;
+ 
+END fHandlePushSubscriberUpd;
+ 
+
+  FUNCTION fHandleXMLPushRequest RETURN NUMBER
+  IS
+    nDummy          NUMBER:= 0;
+    nFID            X_XMLFILES.FID%TYPE := NULL;
+    aFNAME          X_XMLFILES.FNAME%TYPE := NULL;
+    nErrNr          NUMBER:= 0;
+    sErrDesc        VARCHAR2(1000);
+ 
+    nCreateListUpdateInfo   NUMBER:=0;
+    nCreateListReconcInfo   NUMBER:=0;
+ 
+    tempCLOB CLOB := NULL;
+    xmlFileContent XMLType;
+    freeCLOBOnExit BOOLEAN;
+ 
+    F1 UTL_FILE.FILE_TYPE;
+ 
+    LP constant varchar2(50) := 'fHandleXMLPushRequest(): ';
+    LP_steps     VARCHAR2(50) := '';
+    l_StoreXMLinDB boolean; --Database
+    l_StoreXMLinFS boolean; --File System
+    l_file_id number;
+    l_file_name varchar2(500);
+ 
+  BEGIN
+    utl.log(LP||'START', 3);
+ 
+    l_StoreXMLinDB := vpn_util.get_system_parameter('IVPN.XML_FILE.USE_DB') = 'Y';
+    l_StoreXMLinFS := vpn_util.get_system_parameter('IVPN.XML_FILE.USE_FILE_SYSTEM') = 'Y';
+ 
+    freeCLOBOnExit := tempCLOB IS NULL;
+    IF (tempCLOB IS NULL) THEN
+      -- Create a temporary CLOB to hold the BFILE content.
+      DBMS_LOB.createTemporary(tempCLOB, TRUE, DBMS_LOB.SESSION);
+    ELSE
+      -- Decrease the length of the CLOB to the value specified in the newlen parameter i.e. to 0
+      DBMS_LOB.trim(tempCLOB, 0);
+    END IF;
+ 
+    -- update part
+    LP_steps := LP_steps || '(1)_';
+ 
+    SELECT
+      COUNT(*)
+    INTO
+        nCreateListUpdateInfo
+    FROM
+        X_PUSHTRANSACTION
+    WHERE
+        (X_PUSHTRANSACTION.PUSH_STATE = 1)
+        AND
+        (X_PUSHTRANSACTION.PUSH_ACTION <> 'S');
+ 
+    IF nCreateListUpdateInfo <> 0 THEN
+ 
+      -- 0. aanmaken XML file
+    LP_steps := LP_steps || '0.';
+      nErrNr := HandleXMLData.fInsXMLFileInfo
+                (
+                  nFID,
+                  NULL,
+                  NULL,
+                  1, -- EVENTID
+                  1, -- SUBEVENTID
+                  1, -- PROCESSID
+                  0,
+                  NULL,
+                  NULL
+                );
+       HANDLEXMLDATA.set_fid(nFID);
+ 
+       -- 1. ophalen xml-filename record
+      LP_steps := LP_steps || '1.';
+       SELECT
+           X_XMLFILES.FNAME
+       INTO
+           aFNAME
+       FROM
+           X_XMLFILES
+       WHERE
+           X_XMLFILES.FID = nFID;
+ 
+       -- 2. aanmaken xmlfile inhoud
+      LP_steps := LP_steps || '2.';
+       SELECT
+          VIEW_PUSH_UPDATEINFO.PUSH_UPDATEINFO
+       INTO
+          xmlFileContenT
+       FROM
+          VIEW_PUSH_UPDATEINFO;
+ 
+       tempCLOB:= xmlFileContenT.GetClobval();
+ 
+    -- 3. wegschrijven xml file
+      LP_steps := LP_steps || '3.';
+       l_file_name := aFNAME||'.xml';
+       IF l_StoreXMLinDB then
+         ivpn_util.queue_ivpn_file(p_id => l_file_id, p_file_name => l_file_name, p_file_type => 'O', p_text => '', p_contents => tempCLOB);
+         /*
+         update x_xmlfiles
+         set ivpn_file_id = l_id
+         where fid = nFID;
+         utl.assert(sql%rowcount=1,'['||to_char(sql%rowcount)||'] rows updated on table x_xmlfiles.'); -- just to be sure
+         */
+       END IF;
+ 
+       IF l_StoreXMLinFS then
+     Write_CLOB_To_File(tempCLOB, LocalVariables.DirName_PushOutgoing, l_file_name );
+         /*
+         DBMS_XSLPROCESSOR.CLOB2FILE(
+                       tempCLOB,
+                      LocalVariables.DirName_PushOutgoing,
+                      l_file_name,
+                       0);
+         */
+       END IF;
+ 
+       -- 4. demarkeren verwerkte transaction subscriber record
+      LP_steps := LP_steps || '4.';
+       UPDATE  X_PUSHTRANSACTION
+         SET
+            X_PUSHTRANSACTION.PUSH_STATE = 2,
+            X_PUSHTRANSACTION.FID = nFID
+       WHERE
+           (X_PUSHTRANSACTION.PUSH_STATE = 1)
+           AND
+           (X_PUSHTRANSACTION.PUSH_ACTION <> 'S');
+ 
+       -- 1_5. informatie afsluiten
+      LP_steps := LP_steps || '5.';
+       nErrNr :=  HANDLEXMLDATA.fUpdXMLFileInfo(nFID,1,SYSDATE);
+ 
+    -- 1_6. xml informatie afsluiten
+      LP_steps := LP_steps || '6.';
+       l_file_name := l_file_name||'.ready';
+       if l_StoreXMLinDB then
+         ivpn_util.queue_ivpn_file(p_id => l_file_id, p_file_name => l_file_name, p_file_type => 'O', p_text => '', p_contents => null);
+       end if;
+ 
+       if l_StoreXMLinFS then
+         F1 := UTL_FILE.FOPEN (LocalVariables.DirName_PushOutgoing,l_file_name,'W');
+         UTL_FILE.FCLOSE(F1);
+       end if;
+ 
+       COMMIT;
+ 
+    END IF;
+ 
+--reconciliation part
+    nFID := NULL;
+    LP_steps := LP_steps || '(2)_';
+ 
+    SELECT
+      COUNT(*)
+    INTO
+        nCreateListReconcInfo
+    FROM
+        X_PUSHTRANSACTION
+    WHERE
+        (X_PUSHTRANSACTION.PUSH_STATE = 1)
+        AND
+        (X_PUSHTRANSACTION.PUSH_ACTION = 'S');
+ 
+    IF nCreateListReconcInfo <> 0 THEN
+      -- 0. aanmaken XML file
+     LP_steps := LP_steps || '0.';
+      nErrNr := HandleXMLData.fInsXMLFileInfo
+               (
+                 nFID,
+                 NULL,
+                 NULL,
+                 1, -- EVENTID
+                 1, -- SUBEVENTID
+                 2, -- PROCESSID
+                 0,
+                 NULL,
+                 NULL
+               );
+     HANDLEXMLDATA.set_fid(nFID);
+ 
+     -- 1. ophalen xml-filename record
+    LP_steps := LP_steps || '1.';
+     SELECT
+         X_XMLFILES.FNAME
+     INTO
+         aFNAME
+     FROM
+         X_XMLFILES
+     WHERE
+         X_XMLFILES.FID = nFID;
+ 
+     -- 2. aanmaken xmlfile inhoud
+    LP_steps := LP_steps || '2.';
+     SELECT
+       VIEW_PUSH_RECONCINFO.PUSH_RECONCINFO
+     INTO
+        xmlFileContenT
+     FROM
+        VIEW_PUSH_RECONCINFO;
+ 
+     tempCLOB:= xmlFileContenT.GetClobval();
+ 
+    -- 3. wegschrijven xml file
+    LP_steps := LP_steps || '3.';
+   l_file_name := aFNAME||'.xml';
+     IF l_StoreXMLinDB then
+       ivpn_util.queue_ivpn_file(p_id => l_file_id, p_file_name => l_file_name, p_file_type => 'O', p_text => '', p_contents => tempCLOB);
+       /*
+        update x_xmlfiles
+        set ivpn_file_id = l_id
+        where fid = nFID;
+        */
+     END IF;
+ 
+     IF l_StoreXMLinFS THEN
+    Write_CLOB_To_File(tempCLOB, LocalVariables.DirName_PushOutgoing, l_file_name );
+       /*
+        DBMS_XSLPROCESSOR.CLOB2FILE(
+                              tempCLOB,
+                              LocalVariables.DirName_PushOutgoing,
+                              l_file_name,
+                              0);
+   */
+     END IF;
+ 
+     -- 4. demarkeren verwerkte transaction subscriber record
+    LP_steps := LP_steps || '4.';
+     UPDATE  X_PUSHTRANSACTION
+       SET
+         X_PUSHTRANSACTION.PUSH_STATE = 2,
+         X_PUSHTRANSACTION.FID = nFID
+     WHERE
+        (X_PUSHTRANSACTION.PUSH_STATE = 1)
+        AND
+        (X_PUSHTRANSACTION.PUSH_ACTION = 'S');
+ 
+     -- 5. informatie afsluiten
+    LP_steps := LP_steps || '5.';
+     utl.log(LP||'4. informatie afsluiten (reconciliation).', 3);
+     nErrNr :=  HANDLEXMLDATA.fUpdXMLFileInfo(nFID,1,SYSDATE);
+ 
+   -- 6. xml informatie afsluiten
+    LP_steps := LP_steps || '6.';
+     l_file_name := l_file_name||'.ready';
+     if l_StoreXMLinDB then
+       ivpn_util.queue_ivpn_file(p_id => l_file_id, p_file_name => l_file_name, p_file_type => 'O', p_text => '', p_contents => null);
+     end if;
+ 
+     if l_StoreXMLinFS then
+       F1 := UTL_FILE.FOPEN (LocalVariables.DirName_PushOutgoing,l_file_name,'W');
+       UTL_FILE.FCLOSE(F1);
+     end if;
+ 
+     COMMIT;
+ 
+    END IF;
+ 
+    --Free the temporary CLOB.
+    IF (freeCLOBOnExit) THEN
+      -- Free the temporary CLOB.
+      dbms_lob.freeTemporary(tempCLOB);
+    ELSE
+      dbms_lob.trim(tempCLOB, 0);
+    END IF;
+ 
+    RETURN nErrNr;
+ 
+  EXCEPTION
+    WHEN Others THEN
+      -- ...handle the exception
+      nErrNr := SQLCODE;
+      sErrDesc := SQLERRM;
+      utl.log(LP || '<' || LP_steps || '>' || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || '<' || LP_steps || '>' || nErrNr || ' ' || sErrDesc);
+      RETURN nErrNr;
+  END fHandleXMLPushRequest;
+ 
+  FUNCTION fHandlePushInfo RETURN NUMBER
+  IS
+  nErrNr      NUMBER:= 0;
+  sErrDesc     VARCHAR2(1000):='';
+    LP constant varchar2(50) := 'fHandlePushInfo(): ';
+    LP_steps     VARCHAR2(50) := '';
+ 
+  BEGIN
+ 
+    utl.set_call_identifier;
+    utl.log(LP||'START', 2);
+  -- Reconciliation(X_IVPN) and VPN-update(X_VPN)
+  -- X_TRANSACTIONS en X_TRANSACTION_ITEMS=>SEP-commando's[loc,int], Update VPN
+  -- X_PUSHTRANSACTION=>XML-items[int], Reconciliation and VPN-update
+  -- X_TRANSACTIONS en X_TRANSACTION_ITEMS=>PMS-commando's[loc,int], Update VPN
+  -- reset X_IVPN, X_VPN, X_SUBSCRIPTIONS, remove deleted subcribers from the database
+  LP_steps := LP_steps || '0.';
+    nErrNr := HandlePushData.fHandlePushSubscribersUpd;
+ 
+  -- (I)VPN subscriber update (X_SUBSCRIPTIONS)
+  --  X_TRANSACTIONS en X_TRANSACTION_ITEMS=>PMS-commando's[loc,int]
+  -- X_PUSHTRANSACTION=>XML-items[int]
+  -- reset X_SUBSCRIPTIONS , remove deleted subcribers from the database
+  LP_steps := LP_steps || '1.';
+    nErrNr:= HandlePushData.fHandlePushSubscriberUpd;
+ 
+  -- Push transactions verwerken (X_PUSHTRANSACTION naar XML-file)
+  -- xml-file aanmaken, .ready extentie aanmaken, en inserten in X_XMLFILES
+  -- Er wordt onderscheid gemaakt tussen Reconciliation and Update
+  LP_steps := LP_steps || '2.';
+    nErrNr:= HandlePushData.fHandleXMLPushRequest;
+ 
+    RETURN nErrNr;
+ 
+ EXCEPTION
+  WHEN Others THEN
+    -- ...handle the exception
+    nErrNr := SQLCODE;
+    sErrDesc := SQLERRM;
+      utl.log(LP || '<' || LP_steps || '>' || nErrNr || ' ' || sErrDesc, 3);
+   --DBMS_OUTPUT.put_line(LP || '<' || LP_steps || '>' || nErrNr || ' ' || sErrDesc);
+   RETURN nErrNr;
+ END fHandlePushInfo;
+ 
+END HandlePushData;
+/
